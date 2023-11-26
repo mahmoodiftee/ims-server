@@ -40,6 +40,24 @@ async function run() {
             res.send(result);
         })
 
+        // Change the User role
+        app.patch('/updateUserRole', async (req, res) => {
+            try {
+                const { email } = req.body;
+                const { insertedId } = req.body.shop; // Assuming you pass the shop details in the request body
+                
+                const result = await UserCollection.updateOne(
+                    { email: email },
+                    { $set: { role: 'manager', shop_id: insertedId, ShopName: req.body.shop.ShopName, ShopLogo: req.body.shop.LogoUrl } }
+                );
+        
+                res.json({ updatedCount: result.modifiedCount });
+            } catch (error) {
+                console.error('Error updating user role:', error);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
+        });
+
         // Get all data from ShopCollection
         app.get('/shops', async (req, res) => {
             const cursor = ShopCollection.find();
