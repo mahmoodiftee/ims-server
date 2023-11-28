@@ -25,14 +25,74 @@ async function run() {
         const ShopCollection = client.db('Inventory-Management-System').collection('ShopCollection');
         const UserCollection = client.db('Inventory-Management-System').collection('UserCollection');
         const ProductCollection = client.db('Inventory-Management-System').collection('ProductCollection');
+        const CartCollection = client.db('Inventory-Management-System').collection('CartCollection');
+        const SaleCollection = client.db('Inventory-Management-System').collection('SaleCollection');
 
 
-        // Get all data from ProductCollection
-        app.get('/products', async (req, res) => {
-            const cursor = ProductCollection.find();
+        // insert product in the SaleCollection
+        app.post('/sale', async (req, res) => {
+            try {
+                const product = req.body;
+                console.log('Received Data:', product);
+                const result = await SaleCollection.insertOne(product);
+                res.send(result);
+            } catch (error) {
+                console.error('Error inserting into CartCollection:', error);
+                res.status(500).json({ error: 'Internal server error' });
+            }
+        });
+
+
+        // Get all data from SaleCollection
+        app.get('/sale', async (req, res) => {
+            const cursor = SaleCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
+
+
+        // Get data from ProductCollection
+        app.get('/cart', async (req, res) => {
+            try {
+                const userEmail = req.query.email;
+
+                if (userEmail) {
+                    const cursor = CartCollection.find({ userEmail: userEmail });
+                    const result = await cursor.toArray();
+                    res.send(result);
+                } else {
+                    const cursor = CartCollection.find();
+                    const result = await cursor.toArray();
+                    res.send(result);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                res.status(500).json({ error: 'Internal server error' });
+            }
+        });
+
+
+        // Get data from ProductCollection
+        app.get('/products', async (req, res) => {
+            try {
+                const userEmail = req.query.email;
+                console.log('User Email:', userEmail);
+
+                if (userEmail) {
+                    const cursor = ProductCollection.find({ userEmail: userEmail });
+                    const result = await cursor.toArray();
+                    res.send(result);
+                } else {
+                    const cursor = ProductCollection.find();
+                    const result = await cursor.toArray();
+                    res.send(result);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                res.status(500).json({ error: 'Internal server error' });
+            }
+        });
+
         // Get single product from ProductCollection
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
@@ -40,6 +100,67 @@ async function run() {
             const result = await ProductCollection.findOne(query);
             res.send(result);
         })
+        // update productQuantity && saleCount
+        app.patch('/products/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateProduct = req.body;
+                const { operationType } = updateProduct;
+
+                if (operationType === 'increaseSaleCount') {
+                    // Increase sales count
+                    const result = await ProductCollection.updateOne(filter, { $inc: { saleCount: 1 } });
+
+                    if (result.matchedCount === 1 && result.modifiedCount === 1) {
+                        res.status(200).json({ message: 'Sales count increased successfully', modifiedCount: result.modifiedCount });
+                    } else {
+                        res.status(404).json({ message: 'Product not found' });
+                    }
+                } else if (operationType === 'decreaseQuantity') {
+                    // Decrease product quantity
+                    const result = await ProductCollection.updateOne(filter, { $inc: { productQuantity: - 1 } });
+
+                    if (result.matchedCount === 1 && result.modifiedCount === 1) {
+                        res.status(200).json({ message: 'Product quantity decreased successfully', modifiedCount: result.modifiedCount });
+                    } else {
+                        res.status(404).json({ message: 'Product not found' });
+                    }
+                } else {
+                    // Handle other update operations if needed
+                    const result = await ProductCollection.updateOne(filter, updateProduct);
+
+                    if (result.matchedCount === 1 && result.modifiedCount === 1) {
+                        res.status(200).json({ message: 'Product updated successfully', modifiedCount: result.modifiedCount });
+                    } else {
+                        res.status(404).json({ message: 'Product not found' });
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating product:', error);
+                res.status(500).json({ error: 'Internal server error' });
+            }
+        });
+
+
+        // Delete products in the cart based on user's email
+        app.delete('/cart/clear', async (req, res) => {
+            try {
+                const userEmail = req.query.email;
+                console.log(userEmail);
+                if (userEmail) {
+                    const result = await CartCollection.deleteMany({ userEmail: userEmail });
+                    res.status(200).json({ message: 'Cart cleared successfully', deletedCount: result.deletedCount });
+                } else {
+                    res.status(400).json({ message: 'Email parameter is missing' });
+                }
+            } catch (error) {
+                console.error('Error clearing cart:', error);
+                res.status(500).json({ error: 'Internal server error' });
+            }
+        });
+
+
 
         /// Delete product from ProductCollection
         app.delete('/products/:id', async (req, res) => {
@@ -92,6 +213,41 @@ async function run() {
                 res.status(500).json({ message: 'Internal server error' });
             }
         });
+
+        // Get data from CartCollection
+        app.get('/cart', async (req, res) => {
+            try {
+                const userEmail = req.query.email;
+
+                if (userEmail) {
+                    const cursor = CartCollection.find({ userEmail: userEmail });
+                    const result = await cursor.toArray();
+                    res.status(200).json(result);
+                } else {
+                    const cursor = CartCollection.find();
+                    const result = await cursor.toArray();
+                    res.status(200).json(result);
+                }
+            } catch (error) {
+                console.error('Error fetching data from cart:', error);
+                res.status(500).json({ error: 'Internal server error' });
+            }
+        });
+
+
+        // insert product in the CartCollection
+        app.post('/cart', async (req, res) => {
+            const product = req.body;
+            const result = await CartCollection.insertOne(product);
+            res.send(result);
+        })
+
+        // Get all data from CartCollection
+        app.get('/cart', async (req, res) => {
+            const cursor = CartCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
 
 
         // insert product in the ProductCollection
