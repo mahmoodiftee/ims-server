@@ -24,7 +24,82 @@ async function run() {
 
         const ShopCollection = client.db('Inventory-Management-System').collection('ShopCollection');
         const UserCollection = client.db('Inventory-Management-System').collection('UserCollection');
+        const ProductCollection = client.db('Inventory-Management-System').collection('ProductCollection');
 
+
+        // Get all data from ProductCollection
+        app.get('/products', async (req, res) => {
+            const cursor = ProductCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+        // Get single product from ProductCollection
+        app.get('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await ProductCollection.findOne(query);
+            res.send(result);
+        })
+
+        /// Delete product from ProductCollection
+        app.delete('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await ProductCollection.deleteOne(query);
+            res.send(result);
+        });
+
+        // update product
+        app.put('/products/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateProduct = req.body;
+
+                const {
+                    productName,
+                    productImage,
+                    productQuantity,
+                    productLocation,
+                    productCost,
+                    productProfit,
+                    productDiscount,
+                    productDescription,
+                } = updateProduct;
+
+                const updatedProduct = {
+                    $set: {
+                        productName: productName,
+                        productImage: productImage,
+                        productQuantity: productQuantity,
+                        productLocation: productLocation,
+                        productCost: productCost,
+                        productProfit: productProfit,
+                        productDiscount: productDiscount,
+                        productDescription: productDescription,
+                    }
+                };
+
+                const result = await ProductCollection.updateOne(filter, updatedProduct);
+
+                if (result.matchedCount === 1 && result.modifiedCount === 1) {
+                    res.status(200).json({ message: 'Product successfully updated', modifiedCount: result.modifiedCount });
+                } else {
+                    res.status(404).json({ message: 'Product not found' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ message: 'Internal server error' });
+            }
+        });
+
+
+        // insert product in the ProductCollection
+        app.post('/products', async (req, res) => {
+            const product = req.body;
+            const result = await ProductCollection.insertOne(product);
+            res.send(result);
+        })
 
         // Get all data from UserCollection
         app.get('/users', async (req, res) => {
@@ -45,15 +120,33 @@ async function run() {
             try {
                 const { email } = req.body;
                 const { insertedId } = req.body.shop; // Assuming you pass the shop details in the request body
-                
+
                 const result = await UserCollection.updateOne(
                     { email: email },
                     { $set: { role: 'manager', shop_id: insertedId, ShopName: req.body.shop.ShopName, ShopLogo: req.body.shop.LogoUrl } }
                 );
-        
+
                 res.json({ updatedCount: result.modifiedCount });
             } catch (error) {
                 console.error('Error updating user role:', error);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
+        });
+
+
+        // Update productLimit for the user
+        app.patch('/updateProductLimit', async (req, res) => {
+            try {
+                const { email } = req.body;
+
+                const result = await UserCollection.updateOne(
+                    { email: email },
+                    { $inc: { productLimit: 1 } }
+                );
+
+                res.json({ updatedCount: result.modifiedCount });
+            } catch (error) {
+                console.error('Error updating productLimit:', error);
                 res.status(500).json({ error: 'Internal Server Error' });
             }
         });
