@@ -27,7 +27,22 @@ async function run() {
         const ProductCollection = client.db('Inventory-Management-System').collection('ProductCollection');
         const CartCollection = client.db('Inventory-Management-System').collection('CartCollection');
         const SaleCollection = client.db('Inventory-Management-System').collection('SaleCollection');
+        const PdfCollection = client.db('Inventory-Management-System').collection('PdfCollection');
 
+
+        app.post('/pdf', async (req, res) => {
+            const product = req.body;
+            const result = await PdfCollection.insertOne(product);
+            res.send(result);
+        })
+
+
+        // Get all data from CartCollection
+        app.get('/pdf', async (req, res) => {
+            const cursor = PdfCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
 
         // insert product in the SaleCollection
         app.post('/sale', async (req, res) => {
@@ -142,6 +157,23 @@ async function run() {
             }
         });
 
+
+        // Delete products in the pdf based on user's email
+        app.delete('/pdf/clear', async (req, res) => {
+            try {
+                const userEmail = req.query.email;
+                console.log(userEmail);
+                if (userEmail) {
+                    const result = await PdfCollection.deleteMany({ userEmail: userEmail });
+                    res.status(200).json({ message: 'pdf cleared successfully', deletedCount: result.deletedCount });
+                } else {
+                    res.status(400).json({ message: 'Email parameter is missing' });
+                }
+            } catch (error) {
+                console.error('Error clearing pdf:', error);
+                res.status(500).json({ error: 'Internal server error' });
+            }
+        });
 
         // Delete products in the cart based on user's email
         app.delete('/cart/clear', async (req, res) => {
