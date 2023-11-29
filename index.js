@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 const app = express();
 const cors = require('cors');
 
@@ -28,7 +30,52 @@ async function run() {
         const CartCollection = client.db('Inventory-Management-System').collection('CartCollection');
         const SaleCollection = client.db('Inventory-Management-System').collection('SaleCollection');
         const PdfCollection = client.db('Inventory-Management-System').collection('PdfCollection');
+        const payCollection = client.db('Inventory-Management-System').collection('payCollection');
+        const PaymentCollection = client.db('Inventory-Management-System').collection('PaymentCollection');
 
+        //payment
+        app.get('/payment', async (req, res) => {
+            const cursor = PaymentCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.post('/payment', async (req, res) => {
+            const product = req.body;
+            const result = await PaymentCollection.insertOne(product);
+            res.send(result);
+        })
+
+
+        app.post("/create-payment-intent", async (req, res) => {
+            const { price } = req.body;
+            // const price = 10;
+            const amount = parseInt(price * 100);
+            console.log('Stripe Amount:', amount);
+            // Create a PaymentIntent with the order amount and currency
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+               payment_method_types:['card']
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+        app.get('/cards/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await payCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.get('/cards', async (req, res) => {
+            const cursor = payCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
 
         app.post('/pdf', async (req, res) => {
             const product = req.body;
