@@ -387,10 +387,23 @@ async function run() {
 
         // Get all data from ShopCollection
         app.get('/shops', async (req, res) => {
-            const cursor = ShopCollection.find();
-            const result = await cursor.toArray();
-            res.send(result);
-        })
+            try {
+                const userEmail = req.query.email;
+
+                if (userEmail) {
+                    const cursor = ShopCollection.find({ OwnerEmail: userEmail });
+                    const result = await cursor.toArray();
+                    res.send(result);
+                } else {
+                    const cursor = ShopCollection.find();
+                    const result = await cursor.toArray();
+                    res.send(result);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                res.status(500).json({ error: 'Internal server error' });
+            }
+        });
 
         // insert shop in the ShopCollection
         app.post('/shops', async (req, res) => {
