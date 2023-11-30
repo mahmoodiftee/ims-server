@@ -56,7 +56,7 @@ async function run() {
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: "usd",
-               payment_method_types:['card']
+                payment_method_types: ['card']
             });
 
             res.send({
@@ -90,7 +90,6 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         })
-
         // insert product in the SaleCollection
         app.post('/sale', async (req, res) => {
             try {
@@ -138,7 +137,6 @@ async function run() {
         app.get('/products', async (req, res) => {
             try {
                 const userEmail = req.query.email;
-                console.log('User Email:', userEmail);
 
                 if (userEmail) {
                     const cursor = ProductCollection.find({ userEmail: userEmail });
@@ -209,7 +207,6 @@ async function run() {
         app.delete('/pdf/clear', async (req, res) => {
             try {
                 const userEmail = req.query.email;
-                console.log(userEmail);
                 if (userEmail) {
                     const result = await PdfCollection.deleteMany({ userEmail: userEmail });
                     res.status(200).json({ message: 'pdf cleared successfully', deletedCount: result.deletedCount });
@@ -226,7 +223,6 @@ async function run() {
         app.delete('/cart/clear', async (req, res) => {
             try {
                 const userEmail = req.query.email;
-                console.log(userEmail);
                 if (userEmail) {
                     const result = await CartCollection.deleteMany({ userEmail: userEmail });
                     res.status(200).json({ message: 'Cart cleared successfully', deletedCount: result.deletedCount });
@@ -350,11 +346,14 @@ async function run() {
             res.send(result);
         })
 
+        // update limit
+
+
         // Change the User role
         app.patch('/updateUserRole', async (req, res) => {
             try {
                 const { email } = req.body;
-                const { insertedId } = req.body.shop; // Assuming you pass the shop details in the request body
+                const { insertedId } = req.body.shop;
 
                 const result = await UserCollection.updateOne(
                     { email: email },
