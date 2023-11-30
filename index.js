@@ -325,7 +325,7 @@ async function run() {
         })
 
 
-        // insert product in the ProductCollection
+
         app.post('/products', async (req, res) => {
             const product = req.body;
             const result = await ProductCollection.insertOne(product);
